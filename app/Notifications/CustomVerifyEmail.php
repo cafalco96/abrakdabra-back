@@ -13,9 +13,9 @@ class CustomVerifyEmail extends BaseVerifyEmail
 
         return (new MailMessage)
             ->subject('Confirma tu correo en Abrakdabra')
-            ->greeting('¡Bienvenido, '.$notifiable->name.'!')
-            ->line('Gracias por registrarte. Confirma tu correo para activar tu cuenta.')
-            ->action('Verificar correo', $url)
-            ->line('Si no creaste esta cuenta, ignora este mensaje.');
+            ->view('emails.auth.verify-email', [
+                'user' => $notifiable,
+                'url'  => $url,
+            ]);
     }
 }

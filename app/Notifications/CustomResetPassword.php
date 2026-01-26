@@ -13,10 +13,9 @@ class CustomResetPassword extends BaseResetPassword
 
         return (new MailMessage)
             ->subject('Recupera tu contraseña de Abrakdabra')
-            ->greeting('Hola '.$notifiable->name.'!')
-            ->line('Recibimos una solicitud para restablecer tu contraseña.')
-            ->action('Restablecer contraseña', $url)
-            ->line('Este enlace expirará en '.config('auth.passwords.'.config('auth.defaults.passwords').'.expire').' minutos.')
-            ->line('Si no solicitaste este cambio, puedes ignorar este correo.');
+            ->view('emails.auth.reset-password', [
+                'user' => $notifiable,
+                'url'  => $url,
+            ]);
     }
 }
