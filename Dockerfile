@@ -40,10 +40,8 @@ COPY docker/nginx/default.conf /etc/nginx/sites-available/default
 # Copiar configuración de Supervisor
 COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Ejecutar optimizaciones de Laravel
-RUN composer dump-autoload --optimize && \
-    php artisan config:cache && \
-    php artisan route:cache
+# Optimizar autoloader (sin config:cache ni route:cache - se hacen en start.sh con env vars disponibles)
+RUN composer dump-autoload --optimize
 
 # Crear directorios necesarios de Laravel y configurar permisos
 RUN mkdir -p /var/www/html/storage/logs \
