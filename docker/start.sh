@@ -4,7 +4,11 @@ set -e
 
 echo "Starting application..."
 
-# Ejecutar migraciones (opcional - descomenta si quieres que se ejecuten automáticamente)
+# Cachear configuración con las variables de entorno disponibles en runtime
+php artisan config:cache
+php artisan route:cache
+
+# Ejecutar migraciones
 php artisan migrate --force
 
 # Crear enlace simbólico de storage si no existe
