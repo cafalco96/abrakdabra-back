@@ -31,8 +31,7 @@ class AuthController extends Controller
         // dispara evento para verificación de email
         event(new Registered($user));
 
-        // opcional: si quieres que pueda navegar algo antes de verificar,
-        // puedes darle token, pero el backend debe exigir email verificado en zonas críticas
+        // puede darle token, pero el backend debe exigir email verificado en zonas críticas
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -90,7 +89,6 @@ class AuthController extends Controller
         $user->is_active = false;
         $user->save();
 
-        // Opcional: invalidar todos los tokens
         $user->tokens()->delete();
 
         return response()->json(['message' => 'Cuenta desactivada']);

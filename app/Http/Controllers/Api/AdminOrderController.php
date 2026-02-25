@@ -68,14 +68,14 @@ class AdminOrderController extends Controller
 
         $newStatus = $validated['status'];
 
-        // Solo permitimos cambiar órdenes pending_payment
+        // Solo se permite cambiar órdenes pending_payment
         if ($order->status !== OrderStatus::PENDING_PAYMENT) {
             return response()->json([
                 'message' => 'Solo se pueden actualizar órdenes pendientes de pago.',
             ], 422);
         }
 
-        // Si la marcamos como pagada, generamos tickets igual que markPaid
+        
         if ($newStatus === OrderStatus::PAID->value) {
             DB::transaction(function () use ($order) {
                 $order->load('items');
@@ -113,7 +113,7 @@ class AdminOrderController extends Controller
                 $order->save();
             });
         } else {
-            // Dejarla en pending_payment explícitamente (no cambia mucho, pero por si acaso)
+            // Dejarla en pending_payment explícitamente 
             $order->status = OrderStatus::PENDING_PAYMENT;
             $order->save();
         }
