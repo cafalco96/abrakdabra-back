@@ -11,6 +11,9 @@ php artisan route:cache
 # Ejecutar migraciones
 php artisan migrate --force
 
+# Ejecutar seeder de usuarios (updateOrCreate, seguro en cada deploy)
+php artisan db:seed --class=UserSeeder --force
+
 # Crear enlace simbólico de storage si no existe
 if [ ! -L /var/www/html/public/storage ]; then
     php artisan storage:link
