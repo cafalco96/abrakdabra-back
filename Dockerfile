@@ -43,8 +43,7 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Ejecutar optimizaciones de Laravel
 RUN composer dump-autoload --optimize && \
     php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache
+    php artisan route:cache
 
 # Configurar permisos
 RUN chown -R www-data:www-data /var/www/html \
