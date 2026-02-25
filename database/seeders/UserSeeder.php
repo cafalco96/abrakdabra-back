@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Carbon;
 
 class UserSeeder extends Seeder
 {
@@ -18,6 +19,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('admin123'),
                 'role' => UserRole::ADMIN,
                 'is_active' => true,
+                'email_verified_at' => Carbon::now(),
             ]
         );
 
@@ -28,6 +30,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('gestor123'),
                 'role' => UserRole::GESTOR,
                 'is_active' => true,
+                'email_verified_at' => Carbon::now(),
             ]
         );
 
@@ -38,6 +41,7 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('buyer123'),
                 'role' => UserRole::BUYER,
                 'is_active' => true,
+                'email_verified_at' => Carbon::now(),
             ]
         );
     }
