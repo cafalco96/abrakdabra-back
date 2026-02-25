@@ -67,7 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/events/{event}/dates/{date}/ticket-categories/{category}', [TicketCategoryController::class, 'show']);
     Route::put('/events/{event}/dates/{date}/ticket-categories/{category}', [TicketCategoryController::class, 'update']);
     Route::delete('/events/{event}/dates/{date}/ticket-categories/{category}', [TicketCategoryController::class, 'destroy']);
-    
+
     //orders
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders', [OrderController::class, 'index']);      // historial buyer

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use App\Enums\TicketStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\TicketCategory;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
@@ -243,6 +245,20 @@ class OrderController extends Controller
 
             $order->status = OrderStatus::PAID;
             $order->save();
+
+            // Crear registro de Payment si no existe aún
+            if (! $order->payment) {
+                Payment::create([
+                    'order_id'                => $order->id,
+                    'provider'                => 'stripe',
+                    'environment'             => app()->environment('production') ? 'live' : 'sandbox',
+                    'stripe_payment_intent_id' => $order->stripe_payment_intent,
+                    'status'                  => PaymentStatus::SUCCEEDED->value,
+                    'amount'                  => $order->total,
+                    'currency'                => $order->currency,
+                    'paid_at'                 => now(),
+                ]);
+            }
 
             if ($order->discount_code_id) {
                 $order->loadMissing('discountCode');

@@ -26,7 +26,7 @@ class EventController extends Controller
         $user = $request->user();
         $this->ensureCanManageEvents($user);
 
-        // Admin ve todos, gestor solo los suyos (puedes ajustar lógica)
+        // Admin ve todos, gestor solo los suyos 
         $query = Event::query()->with('creator');
 
         if ($user->role === UserRole::GESTOR) {
