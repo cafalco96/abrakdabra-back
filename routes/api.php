@@ -76,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rutas accesibles por ADMIN y GESTOR
     Route::middleware(IsAdminOrGestor::class)->group(function () {
+        Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
         Route::get('/admin/orders', [AdminOrderController::class, 'index']);
         Route::get('/admin/orders/{order}', [AdminOrderController::class, 'show']);
         Route::put('/admin/orders/{order}', [AdminOrderController::class, 'update']);
@@ -89,7 +90,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/users/{user}', [AdminUserController::class, 'show']);
         Route::put('/users/{user}', [AdminUserController::class, 'update']);
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
-        Route::get('/admin/dashboard', [AdminDashboardController::class, 'index']);
         Route::apiResource('admin/discount-codes', AdminDiscountCodeController::class);
     });
 });
