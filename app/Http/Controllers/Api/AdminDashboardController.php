@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Order;
@@ -11,18 +12,30 @@ class AdminDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // Total eventos
-        $totalEvents = Event::count();
+        $user = $request->user();
+        $isGestor = $user->role === UserRole::GESTOR;
+
+        // Total eventos (gestor: solo los suyos)
+        $totalEvents = $isGestor
+            ? Event::where('created_by', $user->id)->count()
+            : Event::count();
 
         // Eventos en venta
-        $eventsOnSale = Event::where('status', 'on_sale')->count();
+        $eventsOnSale = $isGestor
+            ? Event::where('status', 'on_sale')->where('created_by', $user->id)->count()
+            : Event::where('status', 'on_sale')->count();
 
-        // Órdenes pagadas (base)
+        // Ordenes pagadas filtradas por gestor si aplica
         $paidOrdersQuery = Order::where('orders.status', 'paid');
+        if ($isGestor) {
+            $paidOrdersQuery->whereHas('items.ticketCategory.eventDate.event', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
 
         $today = now()->toDateString();
 
-        // Entradas vendidas hoy (solo órdenes pagadas hoy)
+        // Entradas vendidas hoy
         $ticketsSoldToday = (clone $paidOrdersQuery)
             ->whereDate('orders.created_at', $today)
             ->join('order_items', 'orders.id', '=', 'order_items.order_id')
@@ -33,7 +46,7 @@ class AdminDashboardController extends Controller
             ->whereDate('orders.created_at', $today)
             ->sum('orders.total');
 
-        // Entradas totales (todas las órdenes pagadas)
+        // Entradas totales
         $ticketsSoldTotal = (clone $paidOrdersQuery)
             ->join('order_items', 'orders.id', '=', 'order_items.order_id')
             ->sum('order_items.quantity');
