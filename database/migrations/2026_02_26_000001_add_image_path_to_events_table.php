@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('events', function (Blueprint $table) {
-            $table->string('image_path', 500)->nullable()->after('created_by');
-        });
+        if (!Schema::hasColumn('events', 'image_path')) {
+            Schema::table('events', function (Blueprint $table) {
+                $table->string('image_path', 500)->nullable()->after('created_by');
+            });
+        }
     }
 
     public function down(): void
