@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
 use App\Enums\TicketStatus;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Ticket;
@@ -15,16 +16,29 @@ class AdminOrderController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $request->user();
+
         $query = Order::with([
             'user',
             'items.ticketCategory.eventDate.event',
             'payment',
         ])->orderByDesc('created_at');
 
-        // ?status=pending_payment|paid|cancelled
+        // GESTOR: solo ve ordenes de sus propios eventos
+        if ($user->role === UserRole::GESTOR) {
+            $query->whereHas('items.ticketCategory.eventDate.event', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+        }
+
+        // ?status=pending_payment|paid|cancelled (soporta multiples separados por coma)
         if ($status = $request->query('status')) {
-            // Si quieres, puedes validar contra OrderStatus::cases()
-            $query->where('status', $status);
+            $statuses = array_filter(explode(',', $status));
+            if (count($statuses) === 1) {
+                $query->where('status', $statuses[0]);
+            } elseif (count($statuses) > 1) {
+                $query->whereIn('status', $statuses);
+            }
         }
 
         // ?event_id=1
@@ -34,7 +48,7 @@ class AdminOrderController extends Controller
             });
         }
 
-        // ?buyer_email=foo@bar.com (búsqueda parcial)
+        // ?buyer_email=foo@bar.com (busqueda parcial)
         if ($buyerEmail = $request->query('buyer_email')) {
             $query->whereHas('user', function ($q) use ($buyerEmail) {
                 $q->where('email', 'like', '%'.$buyerEmail.'%');
@@ -42,7 +56,6 @@ class AdminOrderController extends Controller
         }
 
         $perPage = (int) $request->query('per_page', 15);
-
         $orders = $query->paginate($perPage);
 
         return response()->json($orders);
@@ -50,6 +63,19 @@ class AdminOrderController extends Controller
 
     public function show(Request $request, Order $order)
     {
+        $user = $request->user();
+
+        // GESTOR: solo puede ver ordenes de sus eventos
+        if ($user->role === UserRole::GESTOR) {
+            $isOwner = $order->items()->whereHas('ticketCategory.eventDate.event', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->exists();
+
+            if (!$isOwner) {
+                abort(403, 'No autorizado.');
+            }
+        }
+
         $order->load(
             'user',
             'items.ticketCategory.eventDate.event',
@@ -62,24 +88,35 @@ class AdminOrderController extends Controller
 
     public function update(Request $request, Order $order)
     {
+        $user = $request->user();
+
+        // GESTOR: solo puede actualizar ordenes de sus eventos
+        if ($user->role === UserRole::GESTOR) {
+            $isOwner = $order->items()->whereHas('ticketCategory.eventDate.event', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->exists();
+
+            if (!$isOwner) {
+                abort(403, 'No autorizado.');
+            }
+        }
+
         $validated = $request->validate([
             'status' => ['required', 'string', 'in:pending_payment,paid,cancelled'],
         ]);
 
         $newStatus = $validated['status'];
 
-        // Solo se permite cambiar órdenes pending_payment
+        // Solo se permite cambiar ordenes pending_payment
         if ($order->status !== OrderStatus::PENDING_PAYMENT) {
             return response()->json([
-                'message' => 'Solo se pueden actualizar órdenes pendientes de pago.',
+                'message' => 'Solo se pueden actualizar ordenes pendientes de pago.',
             ], 422);
         }
 
-        
         if ($newStatus === OrderStatus::PAID->value) {
             DB::transaction(function () use ($order) {
                 $order->load('items');
-
                 foreach ($order->items as $item) {
                     for ($i = 0; $i < $item->quantity; $i++) {
                         Ticket::create([
@@ -93,27 +130,22 @@ class AdminOrderController extends Controller
                         ]);
                     }
                 }
-
                 $order->status = OrderStatus::PAID;
                 $order->save();
             });
         } elseif ($newStatus === OrderStatus::CANCELLED->value) {
-            // Reusar lógica de cancel para devolver stock
             DB::transaction(function () use ($order) {
                 $order->load('items.ticketCategory');
-
                 foreach ($order->items as $item) {
                     $category = $item->ticketCategory;
                     if ($category) {
                         $category->decrement('stock_sold', $item->quantity);
                     }
                 }
-
                 $order->status = OrderStatus::CANCELLED;
                 $order->save();
             });
         } else {
-            // Dejarla en pending_payment explícitamente 
             $order->status = OrderStatus::PENDING_PAYMENT;
             $order->save();
         }
