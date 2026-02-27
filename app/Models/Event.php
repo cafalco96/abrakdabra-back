@@ -6,6 +6,7 @@ use App\Enums\EventStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Event extends Model
 {
@@ -13,6 +14,7 @@ class Event extends Model
 
     protected $fillable = [
         'title',
+        'slug',
         'description',
         'location',
         'status',
@@ -23,6 +25,48 @@ class Event extends Model
     protected $casts = [
         'status' => EventStatus::class,
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Event $event) {
+            if (empty($event->slug)) {
+                $event->slug = static::generateUniqueSlug($event->title);
+            }
+        });
+
+        static::updating(function (Event $event) {
+            if ($event->isDirty('title') && empty($event->slug)) {
+                $event->slug = static::generateUniqueSlug($event->title, $event->id);
+            }
+        });
+    }
+
+    protected static function generateUniqueSlug(string $title, ?int $excludeId = null): string
+    {
+        $base = Str::slug($title);
+        $slug = $base;
+        $count = 1;
+
+        $query = static::withTrashed()->where('slug', $slug);
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        while ($query->clone()->exists()) {
+            $slug = $base . '-' . $count++;
+            $query = static::withTrashed()->where('slug', $slug);
+            if ($excludeId) {
+                $query->where('id', '!=', $excludeId);
+            }
+        }
+
+        return $slug;
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
 
     public function creator()
     {
