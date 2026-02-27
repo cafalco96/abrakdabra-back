@@ -26,6 +26,11 @@ class OrderDiscountController extends Controller
             abort(422, 'Solo se puede aplicar cupon a ordenes pendientes de pago.');
         }
 
+        // Verificar si ya tiene descuento aplicado
+        if ($order->discount_code_id !== null) {
+            abort(422, 'Esta orden ya tiene un codigo de descuento aplicado.');
+        }
+
         $data = $request->validate([
             'code' => ['required', 'string'],
         ]);
@@ -42,7 +47,6 @@ class OrderDiscountController extends Controller
             abort(422, 'El codigo no esta activo.');
         }
 
-        $now = now();
         if ($discount->starts_at && $discount->starts_at->isFuture()) {
             abort(422, 'El codigo aun no esta disponible.');
         }
@@ -79,6 +83,9 @@ class OrderDiscountController extends Controller
             $order->tax_total = $tax;
             $order->total = $total;
             $order->save();
+
+            // Incrementar el contador de usos del codigo
+            $discount->increment('used_count');
         });
 
         return response()->json($order->fresh('items.ticketCategory.eventDate.event'));
