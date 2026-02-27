@@ -47,25 +47,16 @@ class Event extends Model
         $slug = $base;
         $count = 1;
 
-        $query = static::withTrashed()->where('slug', $slug);
-        if ($excludeId) {
-            $query->where('id', '!=', $excludeId);
-        }
-
-        while ($query->clone()->exists()) {
+        while (
+            static::withTrashed()
+                ->where('slug', $slug)
+                ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))
+                ->exists()
+        ) {
             $slug = $base . '-' . $count++;
-            $query = static::withTrashed()->where('slug', $slug);
-            if ($excludeId) {
-                $query->where('id', '!=', $excludeId);
-            }
         }
 
         return $slug;
-    }
-
-    public function getRouteKeyName(): string
-    {
-        return 'slug';
     }
 
     public function creator()
