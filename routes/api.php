@@ -42,7 +42,7 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, $id, $hash) 
     return redirect(config('app.frontend_url') . '/auth/login?verified=1');
 })->middleware('signed')->name('verification.verify');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/me', [AuthController::class, 'updateMe']);
     Route::post('/me/deactivate', [AuthController::class, 'deactivateMe']);
