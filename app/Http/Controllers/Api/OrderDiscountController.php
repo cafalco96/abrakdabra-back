@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\OrderStatus;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\DiscountCode;
 use App\Models\Order;
@@ -15,12 +16,14 @@ class OrderDiscountController extends Controller
     {
         $user = $request->user();
 
-        if ($order->user_id !== $user->id) {
+        // Admin puede aplicar cupones a cualquier orden; buyer solo a las suyas
+        $isAdminOrGestor = in_array($user->role, [UserRole::ADMIN, UserRole::GESTOR]);
+        if (! $isAdminOrGestor && $order->user_id !== $user->id) {
             abort(403, 'No autorizado.');
         }
 
         if ($order->status !== OrderStatus::PENDING_PAYMENT) {
-            abort(422, 'Solo se puede aplicar cupón a órdenes pendientes de pago.');
+            abort(422, 'Solo se puede aplicar cupon a ordenes pendientes de pago.');
         }
 
         $data = $request->validate([
@@ -32,31 +35,29 @@ class OrderDiscountController extends Controller
         $discount = DiscountCode::where('code', $code)->first();
 
         if (! $discount) {
-            abort(422, 'El código no existe.');
+            abort(422, 'El codigo no existe.');
         }
 
         if (! $discount->is_active) {
-            abort(422, 'El código no está activo.');
+            abort(422, 'El codigo no esta activo.');
         }
 
         $now = now();
-
         if ($discount->starts_at && $discount->starts_at->isFuture()) {
-            abort(422, 'El código aún no está disponible.');
+            abort(422, 'El codigo aun no esta disponible.');
         }
 
         if ($discount->ends_at && $discount->ends_at->isPast()) {
-            abort(422, 'El código ha expirado.');
+            abort(422, 'El codigo ha expirado.');
         }
 
         if (! is_null($discount->max_uses) && $discount->used_count >= $discount->max_uses) {
-            abort(422, 'El código ya alcanzó el número máximo de usos.');
+            abort(422, 'El codigo ya alcanzo el numero maximo de usos.');
         }
 
         $subtotal = $order->subtotal;
-
         if ($subtotal <= 0) {
-            abort(422, 'No se puede aplicar el código a una orden vacía.');
+            abort(422, 'No se puede aplicar el codigo a una orden vacia.');
         }
 
         if ($discount->type === 'fixed') {
@@ -64,11 +65,10 @@ class OrderDiscountController extends Controller
         } elseif ($discount->type === 'percentage') {
             $discountAmount = round($subtotal * ($discount->value / 100), 2);
         } else {
-            abort(422, 'Tipo de código inválido.');
+            abort(422, 'Tipo de codigo invalido.');
         }
 
         $taxRate = config('app.tax_rate', 0.0);
-
         $subAfterDiscount = max($subtotal - $discountAmount, 0);
         $tax = round($subAfterDiscount * $taxRate, 2);
         $total = $subAfterDiscount + $tax;
