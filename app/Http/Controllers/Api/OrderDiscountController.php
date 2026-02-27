@@ -37,7 +37,8 @@ class OrderDiscountController extends Controller
 
         $code = strtoupper(trim($data['code']));
 
-        $discount = DiscountCode::where('code', $code)->first();
+        // Busqueda case-insensitive para compatibilidad con codigos existentes
+        $discount = DiscountCode::whereRaw('UPPER(code) = ?', [$code])->first();
 
         if (! $discount) {
             abort(422, 'El codigo no existe.');
@@ -60,6 +61,7 @@ class OrderDiscountController extends Controller
         }
 
         $subtotal = $order->subtotal;
+
         if ($subtotal <= 0) {
             abort(422, 'No se puede aplicar el codigo a una orden vacia.');
         }
