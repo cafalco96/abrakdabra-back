@@ -96,7 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Rutas publicas de catalogo
 Route::get('/public/events', [PublicEventController::class, 'index']);
-Route::get('/public/events/{event}', [PublicEventController::class, 'show']);
+Route::get('/public/events/{event:slug}', [PublicEventController::class, 'show']);
 
 // Stripe webhook endpoint (public, handled by Stripe signing secret)
 Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle']);
